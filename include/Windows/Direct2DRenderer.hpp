@@ -18,14 +18,21 @@ public:
 
 	HRESULT OnRender();
 
+	void RenderKinectFrame(RGBQUAD *frame);
+
 	void DiscardDeviceResources();
 
 private:
+
+	Direct2DRenderer& operator=(Direct2DRenderer&) = delete;
+	Direct2DRenderer(Direct2DRenderer &) = delete;
+
 	HWND m_hwnd;
 	ID2D1Factory* m_pDirect2dFactory;
 	ID2D1HwndRenderTarget* m_pRenderTarget;
 	ID2D1SolidColorBrush* m_pLightSlateGrayBrush;
 	ID2D1SolidColorBrush* m_pCornflowerBlueBrush;
+	IWICImagingFactory *m_pWicFactory;
 };
 
 #endif

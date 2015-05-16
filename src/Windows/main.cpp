@@ -19,8 +19,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	switch (msg)
 	{
 	case Sensor::SENSOR_FRAME_READY:
-		std::cout << "Test";
+	{
+		Sensor &kinect = Sensor::GetInstance();
+
+		renderer->RenderKinectFrame(kinect.GetDepthBuffer());
 		break;
+	}
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
 		break;
@@ -115,7 +119,7 @@ int WINAPI WinMain(
 	if (renderer == nullptr)
 	{
 		renderer = new Direct2DRenderer(handle);
-		HRESULT d2dHR = renderer->CreateDeviceIndependentResources();
+		renderer->CreateDeviceIndependentResources();
 	}
 
 

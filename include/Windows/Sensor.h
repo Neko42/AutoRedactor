@@ -12,6 +12,11 @@
 class Sensor
 {
 public:
+
+	// Depth buffer dimensions
+	static const int DEPTH_BUFFER_WIDTH = 512;
+	static const int DEPTH_BUFFER_HEIGHT = 424;
+
 	// Singleton accessor
 	static Sensor& GetInstance();
 
@@ -23,6 +28,8 @@ public:
 
 	// Notify that we have a sensor frame ready.
 	static const int SENSOR_FRAME_READY = WM_COMMAND + 1;
+
+	RGBQUAD* GetDepthBuffer() const;
 	
 private:
 	// Simple constructor.
@@ -50,7 +57,4 @@ private:
 	// Depth buffer
 	RGBQUAD* _depthBuffer = nullptr;
 
-	// Depth buffer dimensions
-	static const int DEPTH_BUFFER_WIDTH = 512;
-	static const int DEPTH_BUFFER_HEIGHT = 424;
 };

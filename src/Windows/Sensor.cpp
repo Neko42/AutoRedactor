@@ -159,6 +159,11 @@ void Sensor::Update()
 	}
 }
 
+RGBQUAD* Sensor::GetDepthBuffer() const
+{
+	return _depthBuffer;
+}
+
 void Sensor::GetDepthData(
 	unsigned int bufferSize,
 	unsigned short* buffer,
