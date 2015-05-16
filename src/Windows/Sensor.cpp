@@ -141,6 +141,8 @@ void Sensor::Update()
 				buffer,
 				width,
 				height);
+
+			::PostMessage(HWND_BROADCAST, SENSOR_FRAME_READY, 0, 0);
 		}
 
 		if (frameDescription)

@@ -20,6 +20,9 @@ public:
 	
 	// Update the current content of the frame.
 	void Update();
+
+	// Notify that we have a sensor frame ready.
+	static const int SENSOR_FRAME_READY = WM_COMMAND + 1;
 	
 private:
 	// Simple constructor.

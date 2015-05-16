@@ -4,6 +4,8 @@
 
 #include <Windows.h>
 
+#include <iostream>
+
 #include <string>
 
 #include "Sensor.h"
@@ -16,6 +18,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg)
 	{
+	case Sensor::SENSOR_FRAME_READY:
+		std::cout << "Test";
+		break;
 	case WM_CLOSE:
 		DestroyWindow(hwnd);
 		break;
