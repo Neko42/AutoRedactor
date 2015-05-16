@@ -6,6 +6,7 @@
 #include "Sensor.h"
 
 #include <iostream>
+#include <assert.h>
 
 Sensor::Sensor()
 {
@@ -187,8 +188,23 @@ void Sensor::GetDepthData(
 	while (depthBuffer < depthBufferEnd)
 	{
 		unsigned short depth = *buffer;
+
+		static unsigned int lowest = 0xffffffff;
+		static unsigned int highest = 0;
+
+		if (depth < lowest)
+			lowest = depth;
+
+		if (depth > highest)
+			highest = depth;
+
+		float intensity = ((float)depth / 0x1FFF);
+
+		if (intensity < 0.0f || intensity > 1.f)
+		{
+			std::cout << "";
+		}
 		
-		float intensity = 1.0f / (depth / static_cast<float>(SHRT_MAX));
 		depthBuffer->rgbRed = static_cast<BYTE>(intensity * 255.0f);
 		depthBuffer->rgbGreen = static_cast<BYTE>(intensity * 255.0f);
 		depthBuffer->rgbBlue = static_cast<BYTE>(intensity * 255.0f);
