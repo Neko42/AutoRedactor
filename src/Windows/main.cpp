@@ -8,7 +8,9 @@
 
 #include "Sensor.h"
 
+#include "Direct2DRenderer.hpp"
 const std::wstring _className = L"RedactorClass";
+static Direct2DRenderer *renderer = nullptr;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -27,6 +29,33 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 			PostQuitMessage(0);
 		}
 	}
+	case WM_SIZE:
+	{
+		UINT width = LOWORD(lParam);
+		UINT height = HIWORD(lParam);
+		renderer->OnResize(width, height);
+	}
+		//result = 0;
+		//wasHandled = true;
+		break;
+
+	case WM_DISPLAYCHANGE:
+	{
+		InvalidateRect(hwnd, NULL, FALSE);
+	}
+		//result = 0;
+		//wasHandled = true;
+		break;
+
+	case WM_PAINT:
+	{
+		renderer->OnRender();
+		ValidateRect(hwnd, NULL);
+	}
+		//result = 0;
+		//wasHandled = true;
+		break;
+
 	default:
 		return DefWindowProc(hwnd, msg, wParam, lParam);
 	}
@@ -77,6 +106,13 @@ int WINAPI WinMain(
 		NULL,
 		hInstance,
 		NULL);
+
+	if (renderer == nullptr)
+	{
+		renderer = new Direct2DRenderer(handle);
+		HRESULT d2dHR = renderer->CreateDeviceIndependentResources();
+	}
+
 
 	// Show window
 	::ShowWindow(handle, nCmdShow);
