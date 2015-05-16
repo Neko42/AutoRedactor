@@ -43,6 +43,9 @@ Sensor::Sensor()
 		depthFrameSource->Release();
 		depthFrameSource = nullptr;
 	}
+
+	// Create a depth buffer...	
+	_depthBuffer = new RGBQUAD[DEPTH_BUFFER_WIDTH * DEPTH_BUFFER_HEIGHT];
 }
 
 Sensor::~Sensor()
@@ -59,6 +62,8 @@ Sensor::~Sensor()
 		_depthFrameReader->Release();
 		_depthFrameReader = nullptr;
 	}
+
+	delete [] _depthBuffer;
 }
 
 Sensor& Sensor::GetInstance()
@@ -124,13 +129,18 @@ void Sensor::Update()
 
 		if (SUCCEEDED(result))
 		{
-			result = depthFrame->AccessUnderlyingBuffer(&bufferSize, &buffer);
+			result = depthFrame->AccessUnderlyingBuffer(
+				&bufferSize,
+				&buffer);
 		}
 
 		if (SUCCEEDED(result))
 		{
-			// Do something with the depth in here...
-			//ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
+			GetDepthData(
+				bufferSize,
+				buffer,
+				width,
+				height);
 		}
 
 		if (frameDescription)
@@ -147,3 +157,33 @@ void Sensor::Update()
 	}
 }
 
+void Sensor::GetDepthData(
+	unsigned int bufferSize,
+	unsigned short* buffer,
+	unsigned int width,
+	unsigned int height)
+{
+	if (!buffer || !_depthBuffer)
+		return;
+
+	if (width != DEPTH_BUFFER_WIDTH)
+		return;
+
+	if (height != DEPTH_BUFFER_HEIGHT)
+		return;
+
+	RGBQUAD* depthBuffer = _depthBuffer;
+	RGBQUAD* depthBufferEnd = _depthBuffer + (width * height);
+
+	while (depthBuffer < depthBufferEnd)
+	{
+		unsigned short depth = *buffer;
+		float intensity = depth / static_cast<float>(SHRT_MAX);
+		depthBuffer->rgbRed = static_cast<BYTE>(intensity * 255.0f);
+		depthBuffer->rgbGreen = static_cast<BYTE>(intensity * 255.0f);
+		depthBuffer->rgbBlue = static_cast<BYTE>(intensity * 255.0f);
+
+		++depthBuffer;
+		++buffer;
+	}
+}
