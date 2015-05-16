@@ -65,7 +65,6 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 
 		m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
 
-		D2D1_SIZE_F rtSize = m_pRenderTarget->GetSize();
 		IWICBitmap* wicBitmap = nullptr;
 		ID2D1Bitmap *d2Bitmap = nullptr;
 
@@ -89,15 +88,16 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 		if (SUCCEEDED(hr))
 		{
 			D2D1_RECT_F destinationRectangle = D2D1::RectF(
-				0.0f,
-				0.0f,
-				Sensor::DEPTH_BUFFER_WIDTH,
+				Sensor::DEPTH_BUFFER_WIDTH / 1.75f,
+				Sensor::DEPTH_BUFFER_HEIGHT / 1.75f,
+				//0.f, 0.f,
+				Sensor::DEPTH_BUFFER_WIDTH ,
 				Sensor::DEPTH_BUFFER_HEIGHT);
 
 			D2D1_RECT_F sourceRectangle = D2D1::RectF(
 				0.0f,
 				0.0f,
-				Sensor::DEPTH_BUFFER_WIDTH,
+				Sensor::DEPTH_BUFFER_WIDTH ,
 				Sensor::DEPTH_BUFFER_HEIGHT);
 
 			m_pRenderTarget->DrawBitmap(d2Bitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
@@ -127,7 +127,6 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 void Direct2DRenderer::DiscardDeviceResources()
 {
 	SafeRelease(&m_pRenderTarget);
-	SafeRelease(&m_pWicFactory);
 }
 
 HRESULT Direct2DRenderer::CreateDeviceResources()
@@ -148,9 +147,7 @@ HRESULT Direct2DRenderer::CreateDeviceResources()
 		hr = m_pDirect2dFactory->CreateHwndRenderTarget(
 			D2D1::RenderTargetProperties(),
 			D2D1::HwndRenderTargetProperties(m_hwnd, size),
-			&m_pRenderTarget
-			);
-
+			&m_pRenderTarget);
 	}
 
 	return hr;
