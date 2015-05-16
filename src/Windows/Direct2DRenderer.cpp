@@ -52,11 +52,9 @@ void Direct2DRenderer::OnResize(UINT width, UINT height)
 	}
 }
 
-void Direct2DRenderer::RenderKinectFrame(RGBQUAD* color, RGBQUAD *depth)
+HRESULT Direct2DRenderer::StartRendering()
 {
-	HRESULT hr = S_OK;
-
-	hr = CreateDeviceResources();
+	HRESULT hr = CreateDeviceResources();
 	if (SUCCEEDED(hr))
 	{
 		m_pRenderTarget->BeginDraw();
@@ -64,108 +62,114 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD* color, RGBQUAD *depth)
 		m_pRenderTarget->SetTransform(D2D1::Matrix3x2F::Identity());
 
 		m_pRenderTarget->Clear(D2D1::ColorF(D2D1::ColorF::White));
+	}
+	return hr;
+}
 
-		IWICBitmap* wicBitmap = nullptr;
-		ID2D1Bitmap *d2Bitmap = nullptr;
+void Direct2DRenderer::StopRendering()
+{
+	HRESULT hr = m_pRenderTarget->EndDraw();
 
-		int stride = Sensor::COLOR_BUFFER_WIDTH * 4;
-		int bufferSize = Sensor::COLOR_BUFFER_HEIGHT * stride;
+	if (hr == D2DERR_RECREATE_TARGET)
+	{
+		hr = S_OK;
+		DiscardDeviceResources();
+	}
+}
 
-		hr = m_pWicFactory->CreateBitmapFromMemory(
-			Sensor::COLOR_BUFFER_WIDTH,
-			Sensor::COLOR_BUFFER_HEIGHT,
-			GUID_WICPixelFormat32bppBGR,
-			stride,
-			bufferSize,
-			reinterpret_cast<BYTE *>(color),
-			&wicBitmap);
+void Direct2DRenderer::RenderColorFrames(RGBQUAD *color)
+{
+	HRESULT hr = S_OK;
+	int stride = Sensor::COLOR_BUFFER_WIDTH * 4;
+	int bufferSize = Sensor::COLOR_BUFFER_HEIGHT * stride;
 
-		if (SUCCEEDED(hr))
-		{
-			hr = m_pRenderTarget->CreateBitmapFromWicBitmap(wicBitmap, &d2Bitmap);
-		}
+	hr = m_pWicFactory->CreateBitmapFromMemory(
+		Sensor::COLOR_BUFFER_WIDTH,
+		Sensor::COLOR_BUFFER_HEIGHT,
+		GUID_WICPixelFormat32bppBGR,
+		stride,
+		bufferSize,
+		reinterpret_cast<BYTE *>(color),
+		&m_wicBitmap);
 
-		if (SUCCEEDED(hr))
-		{
-			D2D1_RECT_F destinationRectangle = D2D1::RectF(
-				0.f,
-				0.f,
-				static_cast<float>(WINDOW_WIDTH),
-				static_cast<float>(WINDOW_HEIGHT));
+	if (SUCCEEDED(hr))
+	{
+		hr = m_pRenderTarget->CreateBitmapFromWicBitmap(m_wicBitmap, &m_d2dBitmap);
+	}
 
-			D2D1_RECT_F sourceRectangle = D2D1::RectF(
-				0.0f,
-				0.0f,
-				static_cast<float>(Sensor::COLOR_BUFFER_WIDTH),
-				static_cast<float>(Sensor::COLOR_BUFFER_HEIGHT));
+	if (SUCCEEDED(hr))
+	{
+		D2D1_RECT_F destinationRectangle = D2D1::RectF(
+			0.f,
+			0.f,
+			static_cast<float>(WINDOW_WIDTH),
+			static_cast<float>(WINDOW_HEIGHT));
 
-			m_pRenderTarget->DrawBitmap(d2Bitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
-		}
+		D2D1_RECT_F sourceRectangle = D2D1::RectF(
+			0.0f,
+			0.0f,
+			static_cast<float>(Sensor::COLOR_BUFFER_WIDTH),
+			static_cast<float>(Sensor::COLOR_BUFFER_HEIGHT));
 
-		if (wicBitmap)
-		{
-			wicBitmap->Release();
-			wicBitmap = nullptr;
-		}
+		m_pRenderTarget->DrawBitmap(m_d2dBitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
+	}
 
-		if (d2Bitmap)
-		{
-			d2Bitmap->Release();
-			d2Bitmap = nullptr;
-		}
+	ReleaseBitmaps();
+}
 
-		stride = Sensor::DEPTH_BUFFER_WIDTH * 4;
-		bufferSize = Sensor::DEPTH_BUFFER_HEIGHT * stride;
-		
-		hr = m_pWicFactory->CreateBitmapFromMemory(
+void Direct2DRenderer::RenderDepthFrames(RGBQUAD *frame)
+{
+	HRESULT hr = S_OK;
+
+	const int stride = Sensor::DEPTH_BUFFER_WIDTH * 4;
+	const int bufferSize = Sensor::DEPTH_BUFFER_HEIGHT * stride;
+
+	hr = m_pWicFactory->CreateBitmapFromMemory(
+		Sensor::DEPTH_BUFFER_WIDTH,
+		Sensor::DEPTH_BUFFER_HEIGHT,
+		GUID_WICPixelFormat32bppBGR,
+		stride,
+		bufferSize,
+		reinterpret_cast<BYTE *>(frame),
+		&m_wicBitmap);
+
+	if (SUCCEEDED(hr))
+	{
+		hr = m_pRenderTarget->CreateBitmapFromWicBitmap(m_wicBitmap, &m_d2dBitmap);
+	}
+
+	if (SUCCEEDED(hr))
+	{
+		D2D1_RECT_F destinationRectangle = D2D1::RectF(
+			static_cast<float>(WINDOW_WIDTH * 0.5f),
+			static_cast<float>(WINDOW_HEIGHT * 0.5f),
+			static_cast<float>(WINDOW_WIDTH),
+			static_cast<float>(WINDOW_HEIGHT));
+
+		D2D1_RECT_F sourceRectangle = D2D1::RectF(
+			0.0f,
+			0.0f,
 			Sensor::DEPTH_BUFFER_WIDTH,
-			Sensor::DEPTH_BUFFER_HEIGHT,
-			GUID_WICPixelFormat32bppBGR,
-			stride,
-			bufferSize,
-			reinterpret_cast<BYTE *>(depth),
-			&wicBitmap);
+			Sensor::DEPTH_BUFFER_HEIGHT);
 
-		if (SUCCEEDED(hr))
-		{
-			hr = m_pRenderTarget->CreateBitmapFromWicBitmap(wicBitmap, &d2Bitmap);
-		}
+		m_pRenderTarget->DrawBitmap(m_d2dBitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
+	}
 
-		if (SUCCEEDED(hr))
-		{
-			D2D1_RECT_F destinationRectangle = D2D1::RectF(
-				static_cast<float>(WINDOW_WIDTH * 0.5f),
-				static_cast<float>(WINDOW_HEIGHT * 0.5f),
-				static_cast<float>(WINDOW_WIDTH),
-				static_cast<float>(WINDOW_HEIGHT));
+	ReleaseBitmaps();
+}
 
-			D2D1_RECT_F sourceRectangle = D2D1::RectF(
-				0.0f,
-				0.0f,
-				static_cast<float>(Sensor::DEPTH_BUFFER_WIDTH),
-				static_cast<float>(Sensor::DEPTH_BUFFER_HEIGHT));
+void Direct2DRenderer::ReleaseBitmaps()
+{
+	if (m_wicBitmap)
+	{
+		m_wicBitmap->Release();
+		m_wicBitmap = nullptr;
+	}
 
-			m_pRenderTarget->DrawBitmap(d2Bitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
-		}
-
-		hr = m_pRenderTarget->EndDraw();
-
-		if (wicBitmap)
-		{
-			wicBitmap->Release();
-			wicBitmap = nullptr;
-		}
-
-		if (d2Bitmap)
-		{
-			d2Bitmap->Release();
-			d2Bitmap = nullptr;
-		}
-		if (hr == D2DERR_RECREATE_TARGET)
-		{
-			hr = S_OK;
-			DiscardDeviceResources();
-		}
+	if (m_d2dBitmap)
+	{
+		m_d2dBitmap->Release();
+		m_d2dBitmap = nullptr;
 	}
 }
 

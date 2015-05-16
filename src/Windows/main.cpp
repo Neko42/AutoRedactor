@@ -21,7 +21,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case Sensor::SENSOR_FRAME_READY:
 	{
 		Sensor &kinect = Sensor::GetInstance();
-		renderer->RenderKinectFrame(kinect.GetColorBuffer(), kinect.GetDepthBuffer());
+		HRESULT hr = renderer->StartRendering();
+		if (SUCCEEDED(hr))
+		{
+			renderer->RenderColorFrames(kinect.GetColorBuffer());
+			renderer->RenderDepthFrames(kinect.GetDepthBuffer());
+			renderer->StopRendering();
+		}
+
 		break;
 	}
 	case WM_CLOSE:

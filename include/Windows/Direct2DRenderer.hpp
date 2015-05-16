@@ -14,16 +14,19 @@ public:
 	Direct2DRenderer(HWND handle);
 	~Direct2DRenderer();
 	HRESULT CreateDeviceIndependentResources();
-
 	HRESULT CreateDeviceResources();
 
 	void OnResize(UINT width, UINT height);
 
-	void RenderKinectFrame(RGBQUAD* color, RGBQUAD* depth);
+	HRESULT StartRendering();
+	
+	void RenderColorFrames(RGBQUAD *color);
+	void RenderDepthFrames(RGBQUAD *frame);
 
-	void DiscardDeviceResources();
-
+	void StopRendering();
 private:
+	void ReleaseBitmaps();
+	void DiscardDeviceResources();
 
 	Direct2DRenderer& operator=(Direct2DRenderer&) = delete;
 	Direct2DRenderer(Direct2DRenderer &) = delete;
@@ -32,6 +35,9 @@ private:
 	ID2D1Factory* m_pDirect2dFactory;
 	ID2D1HwndRenderTarget* m_pRenderTarget;
 	IWICImagingFactory *m_pWicFactory;
+
+	IWICBitmap* m_wicBitmap;
+	ID2D1Bitmap* m_d2dBitmap;
 };
 
 #endif
