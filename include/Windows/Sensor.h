@@ -9,6 +9,9 @@
 class Sensor
 {
 public:
+	// Singleton accessor
+	static Sensor& GetInstance();
+
 	// Simple destructor.
 	virtual ~Sensor();
 	
@@ -28,5 +31,5 @@ private:
 	IKinectSensor* _sensor = nullptr;
 
 	// The depth frame.
-	IDepthFrameReader* _depthFrameReader;
+	IDepthFrameReader* _depthFrameReader = nullptr;
 };

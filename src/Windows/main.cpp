@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "Sensor.h"
+
 const std::wstring _className = L"RedactorClass";
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
@@ -86,7 +88,7 @@ int WINAPI WinMain(
 	// Main message loop
 	while (WM_QUIT != msg.message)
 	{
-		//_kinect->Update();
+		Sensor::GetInstance().Update();
 
 		while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
 		{

@@ -15,7 +15,7 @@ Sensor::Sensor()
 		throw std::exception("Cannot get sensor");
 	}
 
-	IDepthFrameSource* pDepthFrameSource = NULL;
+	IDepthFrameSource* depthFrameSource = nullptr;
 
 	result = _sensor->Open();
 
@@ -24,27 +24,47 @@ Sensor::Sensor()
 		throw std::exception("Cannot open sensor");
 	}
 
-	result = _sensor->get_DepthFrameSource(&pDepthFrameSource);
+	result = _sensor->get_DepthFrameSource(&depthFrameSource);
 
 	if (FAILED(result))
 	{
 		throw std::exception("Cannot get depth frame source");
 	}
 
-	result = pDepthFrameSource->OpenReader(&_depthFrameReader);
+	result = depthFrameSource->OpenReader(&_depthFrameReader);
 
 	if (FAILED(result))
 	{
 		throw std::exception("Cannot get depth frame reader");
 	}
 
-	pDepthFrameSource->Release();
-	pDepthFrameSource = nullptr;
+	if (!depthFrameSource)
+	{
+		depthFrameSource->Release();
+		depthFrameSource = nullptr;
+	}
 }
 
 Sensor::~Sensor()
 {
+	if (_sensor)
+	{
+		_sensor->Close();
+		_sensor->Release();
+		_sensor = nullptr;
+	}
 
+	if (_depthFrameReader)
+	{
+		_depthFrameReader->Release();
+		_depthFrameReader = nullptr;
+	}
+}
+
+Sensor& Sensor::GetInstance()
+{
+	static Sensor* _instance = new Sensor();
+	return *_instance;
 }
 
 void Sensor::Update()
@@ -54,68 +74,76 @@ void Sensor::Update()
 		return;
 	}
 
-	IDepthFrame* depthFrame = NULL;
+	IDepthFrame* depthFrame = nullptr;
 
-	HRESULT hr = _depthFrameReader->AcquireLatestFrame(&depthFrame);
+	// Get latest depth frame...
+	HRESULT result = _depthFrameReader->AcquireLatestFrame(&depthFrame);
 
-	if (SUCCEEDED(hr))
+	if (SUCCEEDED(result))
 	{
-		INT64 nTime = 0;
-		IFrameDescription* pFrameDescription = NULL;
-		int nWidth = 0;
-		int nHeight = 0;
-		USHORT nDepthMinReliableDistance = 0;
-		USHORT nDepthMaxDistance = 0;
-		UINT nBufferSize = 0;
-		UINT16 *pBuffer = NULL;
+		INT64 time = 0;
+		IFrameDescription* frameDescription = NULL;
 
-		hr = depthFrame->get_RelativeTime(&nTime);
+		result = depthFrame->get_RelativeTime(&time);
 
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(result))
 		{
-			hr = depthFrame->get_FrameDescription(&pFrameDescription);
+			result = depthFrame->get_FrameDescription(&frameDescription);
 		}
 
-		if (SUCCEEDED(hr))
+		int width = 0;
+
+		if (SUCCEEDED(result))
 		{
-			hr = pFrameDescription->get_Width(&nWidth);
+			result = frameDescription->get_Width(&width);
 		}
 
-		if (SUCCEEDED(hr))
+		int height = 0;
+
+		if (SUCCEEDED(result))
 		{
-			hr = pFrameDescription->get_Height(&nHeight);
+			result = frameDescription->get_Height(&height);
 		}
 
-		if (SUCCEEDED(hr))
+		unsigned short minDistance = 0;
+
+		if (SUCCEEDED(result))
 		{
-			hr = depthFrame->get_DepthMinReliableDistance(&nDepthMinReliableDistance);
+			result = depthFrame->get_DepthMinReliableDistance(&minDistance);
 		}
 
-		if (SUCCEEDED(hr))
-		{
-			// In order to see the full range of depth (including the less reliable far field depth)
-			// we are setting nDepthMaxDistance to the extreme potential depth threshold
-			nDepthMaxDistance = USHRT_MAX;
+		unsigned short maxDistance = USHRT_MAX;
 
-			// Note:  If you wish to filter by reliable depth distance, uncomment the following line.
-			//// hr = pDepthFrame->get_DepthMaxReliableDistance(&nDepthMaxDistance);
+		//if (SUCCEEDED(result))
+		//{
+		//	//// hr = pDepthFrame->get_DepthMaxReliableDistance(&maxDistance);
+		//}
+
+		unsigned int bufferSize = 0;
+		unsigned short* buffer = NULL;
+
+		if (SUCCEEDED(result))
+		{
+			result = depthFrame->AccessUnderlyingBuffer(&bufferSize, &buffer);
 		}
 
-		if (SUCCEEDED(hr))
+		if (SUCCEEDED(result))
 		{
-			hr = depthFrame->AccessUnderlyingBuffer(&nBufferSize, &pBuffer);
-		}
-
-		if (SUCCEEDED(hr))
-		{
+			// Do something with the depth in here...
 			//ProcessDepth(nTime, pBuffer, nWidth, nHeight, nDepthMinReliableDistance, nDepthMaxDistance);
 		}
 
-		if (pFrameDescription)
-			pFrameDescription->Release();
+		if (frameDescription)
+		{
+			frameDescription->Release();
+			frameDescription = nullptr;
+		}
 	}
 
 	if (depthFrame)
+	{
 		depthFrame->Release();
+		depthFrame = nullptr;
+	}
 }
 
