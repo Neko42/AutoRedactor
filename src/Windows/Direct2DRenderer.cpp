@@ -180,6 +180,17 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 
 		hr = m_pRenderTarget->EndDraw();
 
+		if (wicBitmap)
+		{
+			wicBitmap->Release();
+			wicBitmap = nullptr;
+		}
+
+		if (d2Bitmap)
+		{
+			d2Bitmap->Release();
+			d2Bitmap = nullptr;
+		}
 		if (hr == D2DERR_RECREATE_TARGET)
 		{
 			hr = S_OK;
