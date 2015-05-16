@@ -71,8 +71,8 @@ int WINAPI WinMain(
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		300,
-		300,
+		512,
+		484,
 		NULL,
 		NULL,
 		hInstance,
@@ -81,9 +81,6 @@ int WINAPI WinMain(
 	// Show window
 	::ShowWindow(handle, nCmdShow);
 	::UpdateWindow(handle);
-
-	// Initialise the sensor
-	//_kinect = std::make_shared<Sensor>();
 
 	// Main message loop
 	while (WM_QUIT != msg.message)
