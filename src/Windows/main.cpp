@@ -58,7 +58,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	case WM_PAINT:
 	{
-		renderer->OnRender();
 		ValidateRect(hwnd, NULL);
 	}
 		//result = 0;
