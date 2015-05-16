@@ -145,11 +145,12 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 		ID2D1Bitmap *d2Bitmap = nullptr;
 
 		const int stride = Sensor::DEPTH_BUFFER_WIDTH * 4;
-		const int bufferSize = Sensor::DEPTH_BUFFER_HEIGHT * Sensor::DEPTH_BUFFER_WIDTH;
+		const int bufferSize = Sensor::DEPTH_BUFFER_HEIGHT * stride;
 		
-		hr = m_pWicFactory->CreateBitmapFromMemory(Sensor::DEPTH_BUFFER_WIDTH,
+		hr = m_pWicFactory->CreateBitmapFromMemory(
+			Sensor::DEPTH_BUFFER_WIDTH,
 			Sensor::DEPTH_BUFFER_HEIGHT,
-			GUID_WICPixelFormat32bppBGRA,
+			GUID_WICPixelFormat32bppBGR,
 			stride,
 			bufferSize,
 			reinterpret_cast<BYTE *>(frame),
@@ -163,23 +164,21 @@ void Direct2DRenderer::RenderKinectFrame(RGBQUAD *frame)
 		if (SUCCEEDED(hr))
 		{
 			D2D1_RECT_F destinationRectangle = D2D1::RectF(
-				rtSize.width / 2 - 50.0f,
-				rtSize.height / 2 - 50.0f,
-				rtSize.width / 2 + 50.0f,
-				rtSize.height / 2 + 50.0f
-				);
+				0.0f,
+				0.0f,
+				Sensor::DEPTH_BUFFER_WIDTH,
+				Sensor::DEPTH_BUFFER_HEIGHT);
 
 			D2D1_RECT_F sourceRectangle = D2D1::RectF(
-				rtSize.width / 2 - 100.0f,
-				rtSize.height / 2 - 100.0f,
-				rtSize.width / 2 + 100.0f,
-				rtSize.height / 2 + 100.0f
-				);
+				0.0f,
+				0.0f,
+				Sensor::DEPTH_BUFFER_WIDTH,
+				Sensor::DEPTH_BUFFER_HEIGHT);
 
 			m_pRenderTarget->DrawBitmap(d2Bitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
-
-			hr = m_pRenderTarget->EndDraw();
 		}
+
+		hr = m_pRenderTarget->EndDraw();
 
 		if (hr == D2DERR_RECREATE_TARGET)
 		{

@@ -5,6 +5,8 @@
 #include "stdafx.h"
 #include "Sensor.h"
 
+#include <iostream>
+
 Sensor::Sensor()
 {
 	HRESULT result;
@@ -185,7 +187,8 @@ void Sensor::GetDepthData(
 	while (depthBuffer < depthBufferEnd)
 	{
 		unsigned short depth = *buffer;
-		float intensity = depth / static_cast<float>(SHRT_MAX);
+		
+		float intensity = 1.0f / (depth / static_cast<float>(SHRT_MAX));
 		depthBuffer->rgbRed = static_cast<BYTE>(intensity * 255.0f);
 		depthBuffer->rgbGreen = static_cast<BYTE>(intensity * 255.0f);
 		depthBuffer->rgbBlue = static_cast<BYTE>(intensity * 255.0f);
