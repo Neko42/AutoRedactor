@@ -8,6 +8,9 @@
 class Direct2DRenderer
 {
 public:
+	static const int WINDOW_WIDTH = 1280;
+	static const int WINDOW_HEIGHT = 720;
+
 	Direct2DRenderer(HWND handle);
 	~Direct2DRenderer();
 	HRESULT CreateDeviceIndependentResources();
@@ -16,7 +19,7 @@ public:
 
 	void OnResize(UINT width, UINT height);
 
-	void RenderKinectFrame(RGBQUAD *frame);
+	void RenderKinectFrame(RGBQUAD* color, RGBQUAD* depth);
 
 	void DiscardDeviceResources();
 

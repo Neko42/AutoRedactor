@@ -21,8 +21,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case Sensor::SENSOR_FRAME_READY:
 	{
 		Sensor &kinect = Sensor::GetInstance();
-
-		renderer->RenderKinectFrame(kinect.GetDepthBuffer());
+		renderer->RenderKinectFrame(kinect.GetColorBuffer(), kinect.GetDepthBuffer());
 		break;
 	}
 	case WM_CLOSE:
@@ -108,8 +107,8 @@ int WINAPI WinMain(
 		WS_OVERLAPPEDWINDOW,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		512,
-		424,
+		Direct2DRenderer::WINDOW_WIDTH,
+		Direct2DRenderer::WINDOW_HEIGHT,
 		NULL,
 		NULL,
 		hInstance,
@@ -120,7 +119,6 @@ int WINAPI WinMain(
 		renderer = new Direct2DRenderer(handle);
 		renderer->CreateDeviceIndependentResources();
 	}
-
 
 	// Show window
 	::ShowWindow(handle, nCmdShow);
