@@ -17,6 +17,10 @@ public:
 	static const int DEPTH_BUFFER_WIDTH = 512;
 	static const int DEPTH_BUFFER_HEIGHT = 424;
 
+	// Colour buffer dimensions
+	static const int COLOR_BUFFER_WIDTH = 1920;
+	static const int COLOR_BUFFER_HEIGHT = 1080;
+
 	// Singleton accessor
 	static Sensor& GetInstance();
 
@@ -29,8 +33,12 @@ public:
 	// Notify that we have a sensor frame ready.
 	static const int SENSOR_FRAME_READY = WM_COMMAND + 1;
 
+	// Get the depth buffer data
 	RGBQUAD* GetDepthBuffer() const;
 	
+	// Get the colour buffer data
+	RGBQUAD* GetColorBuffer() const;
+
 private:
 	// Simple constructor.
 	Sensor();
@@ -57,4 +65,9 @@ private:
 	// Depth buffer
 	RGBQUAD* _depthBuffer = nullptr;
 
+	// The color frame
+	IColorFrameReader* _colorFrameReader = nullptr;
+
+	// Color buffer
+	RGBQUAD* _colorBuffer = nullptr;
 };
