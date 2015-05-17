@@ -149,8 +149,8 @@ void Direct2DRenderer::RenderDepthFrames(RGBQUAD *frame)
 		D2D1_RECT_F sourceRectangle = D2D1::RectF(
 			0.0f,
 			0.0f,
-			Sensor::DEPTH_BUFFER_WIDTH,
-			Sensor::DEPTH_BUFFER_HEIGHT);
+			static_cast<float>(Sensor::DEPTH_BUFFER_WIDTH),
+			static_cast<float>(Sensor::DEPTH_BUFFER_HEIGHT));
 
 		m_pRenderTarget->DrawBitmap(m_d2dBitmap, &destinationRectangle, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
 	}

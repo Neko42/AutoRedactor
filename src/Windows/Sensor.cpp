@@ -8,6 +8,20 @@
 #include <iostream>
 #include <assert.h>
 
+// define the face frame features required to be computed by this application
+static const DWORD FACE_FRAME_FEATURES =
+FaceFrameFeatures::FaceFrameFeatures_BoundingBoxInColorSpace
+| FaceFrameFeatures::FaceFrameFeatures_PointsInColorSpace
+| FaceFrameFeatures::FaceFrameFeatures_RotationOrientation
+| FaceFrameFeatures::FaceFrameFeatures_Happy
+| FaceFrameFeatures::FaceFrameFeatures_RightEyeClosed
+| FaceFrameFeatures::FaceFrameFeatures_LeftEyeClosed
+| FaceFrameFeatures::FaceFrameFeatures_MouthOpen
+| FaceFrameFeatures::FaceFrameFeatures_MouthMoved
+| FaceFrameFeatures::FaceFrameFeatures_LookingAway
+| FaceFrameFeatures::FaceFrameFeatures_Glasses
+| FaceFrameFeatures::FaceFrameFeatures_FaceEngagement;
+
 Sensor::Sensor()
 {
 	HRESULT result;
@@ -74,6 +88,56 @@ Sensor::Sensor()
 
 	// Create a colour buffer...
 	_colorBuffer = new RGBQUAD[COLOR_BUFFER_WIDTH * COLOR_BUFFER_HEIGHT];
+
+	// nullptr out frame sources
+	for (int i = 0; i < BODY_COUNT; ++i)
+	{
+		_faceFrameSources[i] = nullptr;
+		_faceFrameReaders[i] = nullptr;
+	}
+
+	// Get the coordinate mapper
+	if (SUCCEEDED(result))
+	{
+		result = _sensor->get_CoordinateMapper(&_coordinateMapper);
+	}
+
+	// Get the coordinate frame source
+	IBodyFrameSource* bodyFrameSource = nullptr;
+
+	if (SUCCEEDED(result))
+	{
+		result = _sensor->get_BodyFrameSource(&bodyFrameSource);
+	}
+
+	if (SUCCEEDED(result))
+	{
+		result = bodyFrameSource->OpenReader(&_bodyFrameReader);
+	}
+
+	if (SUCCEEDED(result))
+	{
+		// create a face frame source + reader to track each body in the fov
+		for (int i = 0; i < BODY_COUNT; i++)
+		{
+			if (SUCCEEDED(result))
+			{
+				// create the face frame source by specifying the required face frame features
+				result = ::CreateFaceFrameSource(_sensor, 0, FACE_FRAME_FEATURES, &_faceFrameSources[i]);
+			}
+			if (SUCCEEDED(result))
+			{
+				// open the corresponding reader
+				result = _faceFrameSources[i]->OpenReader(&_faceFrameReaders[i]);
+			}
+		}
+	}
+
+	if (bodyFrameSource)
+	{
+		bodyFrameSource->Release();
+		bodyFrameSource = nullptr;
+	}
 }
 
 Sensor::~Sensor()
@@ -97,6 +161,33 @@ Sensor::~Sensor()
 		_colorFrameReader = nullptr;
 	}
 
+	if (_bodyFrameReader)
+	{
+		_bodyFrameReader->Release();
+		_bodyFrameReader = nullptr;
+	}
+
+	if (_colorFrameReader)
+	{
+		_colorFrameReader->Release();
+		_colorFrameReader = nullptr;
+	}
+
+	for (int i = 0; i < BODY_COUNT; ++i)
+	{
+		if (_faceFrameSources[i])
+		{
+			_faceFrameSources[i]->Release();
+			_faceFrameSources[i] = nullptr;
+		}
+
+		if (_faceFrameReaders[i])
+		{
+			_faceFrameReaders[i]->Release();
+			_faceFrameReaders[i] = nullptr;
+		}
+	}
+
 	delete [] _depthBuffer;
 	delete[] _colorBuffer;
 }
@@ -115,6 +206,11 @@ void Sensor::Update()
 	}
 
 	if (!_colorFrameReader)
+	{
+		return;
+	}
+
+	if (!_bodyFrameReader)
 	{
 		return;
 	}
@@ -241,6 +337,17 @@ void Sensor::Update()
 
 	if (SUCCEEDED(result))
 	{
+		IBody* body = GetBodyData();
+
+		if (body)
+		{
+			body->Release();
+			body = nullptr;
+		}
+	}
+
+	if (SUCCEEDED(result))
+	{
 		::PostMessage(HWND_BROADCAST, SENSOR_FRAME_READY, 0, 0);
 	}
 
@@ -265,6 +372,29 @@ RGBQUAD* Sensor::GetDepthBuffer() const
 RGBQUAD* Sensor::GetColorBuffer() const
 {
 	return _colorBuffer;
+}
+
+IBody* Sensor::GetBodyData()
+{
+	IBody* body = nullptr;
+
+	if (_bodyFrameReader)
+	{
+		IBodyFrame* bodyFrame = nullptr;
+		HRESULT result = _bodyFrameReader->AcquireLatestFrame(&bodyFrame);
+		if (SUCCEEDED(result))
+		{
+			result = bodyFrame->GetAndRefreshBodyData(BODY_COUNT, &body);
+		}
+
+		if (bodyFrame)
+		{
+			bodyFrame->Release();
+			bodyFrame = nullptr;
+		}
+	}
+
+	return body;
 }
 
 void Sensor::GetDepthData(

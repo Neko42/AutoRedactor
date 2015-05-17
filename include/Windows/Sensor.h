@@ -5,6 +5,7 @@
 #pragma once
 
 #include <Kinect.h>
+#include <Kinect.Face.h>
 #include <Windows.h>
 
 #include <memory>
@@ -55,19 +56,34 @@ private:
 		unsigned int width,
 		unsigned int height);
 
+	// Get latest body data
+	IBody* GetBodyData();
+
 private:
 	// The default sensor in use.
-	IKinectSensor* _sensor = nullptr;
+	IKinectSensor*			_sensor = nullptr;
 
 	// The depth frame.
-	IDepthFrameReader* _depthFrameReader = nullptr;
+	IDepthFrameReader*		_depthFrameReader = nullptr;
 
 	// Depth buffer
-	RGBQUAD* _depthBuffer = nullptr;
+	RGBQUAD*				_depthBuffer = nullptr;
 
 	// The color frame
-	IColorFrameReader* _colorFrameReader = nullptr;
+	IColorFrameReader*		_colorFrameReader = nullptr;
+
+	// Coordinate mapper
+	ICoordinateMapper*		_coordinateMapper = nullptr;
+
+	// Body reader
+	IBodyFrameReader*		_bodyFrameReader = nullptr;
 
 	// Color buffer
-	RGBQUAD* _colorBuffer = nullptr;
+	RGBQUAD*				_colorBuffer = nullptr;
+
+	// Face sources
+	IFaceFrameSource*		_faceFrameSources[BODY_COUNT];
+
+	// Face readers
+	IFaceFrameReader*		_faceFrameReaders[BODY_COUNT];
 };
