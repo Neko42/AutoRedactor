@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "Sensor.h"
+#include "ImageCache.h"
 
 #include <iostream>
 #include <assert.h>
@@ -31,6 +32,12 @@ static const float FACE_TEXT_LAYOUT_OFFSET_Y = -0.125f;
 Sensor::Sensor()
 {
 	HRESULT result;
+
+	for (unsigned int i = 0; i < BODY_COUNT; ++i)
+	{
+		_faceFound[i] = false;
+		_face[i] = nullptr;
+	}
 
 	result = ::GetDefaultKinectSensor(&_sensor);
 	if (FAILED(result))
@@ -502,6 +509,9 @@ void Sensor::UpdateFaceData(IBody** bodies)
 						{
 							// update the face frame source with the tracking ID
 							_faceFrameSources[i]->put_TrackingId(bodyId);
+
+							//Store the face...
+							_face[i] = ImageCache::GetInstance().GetImage();
 						}
 					}
 				}

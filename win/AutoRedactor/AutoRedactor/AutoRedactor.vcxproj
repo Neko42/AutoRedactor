@@ -92,12 +92,14 @@ xcopy "C:\Program Files\Microsoft SDKs\Kinect\v2.0_1409\Redist\Face\x86\Kinect20
   <ItemGroup>
     <ClInclude Include="..\..\..\include\Windows\Direct2DHelper.hpp" />
     <ClInclude Include="..\..\..\include\Windows\Direct2DRenderer.hpp" />
+    <ClInclude Include="..\..\..\include\Windows\ImageCache.h" />
     <ClInclude Include="..\..\..\include\Windows\main.h" />
     <ClInclude Include="..\..\..\include\Windows\Sensor.h" />
     <ClInclude Include="..\..\..\include\Windows\stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\Windows\Direct2DRenderer.cpp" />
+    <ClCompile Include="..\..\..\src\Windows\ImageCache.cpp" />
     <ClCompile Include="..\..\..\src\Windows\main.cpp" />
     <ClCompile Include="..\..\..\src\Windows\Sensor.cpp" />
   </ItemGroup>

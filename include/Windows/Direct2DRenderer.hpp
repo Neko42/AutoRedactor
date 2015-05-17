@@ -5,6 +5,7 @@
 #include <dwrite.h>
 #include <wincodec.h>
 #include <Kinect.Face.h>
+#include <string>
 
 class Direct2DRenderer
 {
@@ -23,7 +24,8 @@ public:
 	
 	void RenderColorFrames(RGBQUAD *color);
 	void RenderDepthFrames(RGBQUAD *frame);
-	void RenderFaces(const RectI& rect);
+	void RenderFaces(const RectI& rect, ID2D1Bitmap* face);
+	ID2D1Bitmap* LoadDirect2DImage(const std::wstring& fileName);
 
 	void StopRendering();
 private:

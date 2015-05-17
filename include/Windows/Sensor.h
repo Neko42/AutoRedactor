@@ -64,6 +64,14 @@ public:
 		return _faceBox[id];
 	}
 
+	ID2D1Bitmap* GetFace(unsigned int id) const
+	{
+		if (id >= GetFaceCount())
+			return nullptr;
+
+		return _face[id];
+	}
+
 private:
 	// Simple constructor.
 	Sensor();
@@ -122,6 +130,9 @@ private:
 
 	// Face box
 	RectI					_faceBox[BODY_COUNT];
+
+	// Face...
+	ID2D1Bitmap*			_face[BODY_COUNT];
 
 	// Face points
 	PointF					_facePoints[BODY_COUNT][FacePointType::FacePointType_Count];

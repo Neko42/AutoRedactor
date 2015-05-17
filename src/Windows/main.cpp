@@ -9,10 +9,13 @@
 #include <string>
 
 #include "Sensor.h"
+#include "ImageCache.h"
 
 #include "Direct2DRenderer.hpp"
 const std::wstring _className = L"RedactorClass";
-static Direct2DRenderer *renderer = nullptr;
+
+//FIXME: Hack to allow ImageCache to run...
+Direct2DRenderer *renderer = nullptr;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -32,8 +35,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				if (!kinect.GetFaceFound(i))
 					continue;
 
-				RectI faceBox = kinect.GetFaceBox(i);				
-				renderer->RenderFaces(faceBox);
+				RectI faceBox = kinect.GetFaceBox(i);	
+				ID2D1Bitmap* image = kinect.GetFace(i);
+				renderer->RenderFaces(faceBox, image);
 			}
 
 			renderer->StopRendering();

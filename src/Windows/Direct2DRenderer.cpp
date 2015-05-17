@@ -1,5 +1,6 @@
 #include "Direct2DRenderer.hpp"
 #include "Direct2DHelper.hpp"
+#include "ImageCache.h"
 
 #include <Windows.h>
 
@@ -158,7 +159,7 @@ void Direct2DRenderer::RenderDepthFrames(RGBQUAD *frame)
 	ReleaseBitmaps();
 }
 
-void Direct2DRenderer::RenderFaces(const RectI& rect)
+void Direct2DRenderer::RenderFaces(const RectI& rect, ID2D1Bitmap* face)
 {
 	const float widthScale = 1.0f / Sensor::COLOR_BUFFER_WIDTH;
 	const float heightScale = 1.0f / Sensor::COLOR_BUFFER_HEIGHT;
@@ -169,7 +170,46 @@ void Direct2DRenderer::RenderFaces(const RectI& rect)
 	box.right = (static_cast<float>(rect.Right) * widthScale) * WINDOW_WIDTH;
 	box.bottom = (static_cast<float>(rect.Bottom) * heightScale) * WINDOW_HEIGHT;
 
+	float width = (box.right - box.left);
+	float height = (box.bottom - box.top);
+
+	// Keep the aspect...
+	float newWidth = width;
+	float newHeight = width;
+	float offsetX = (newWidth - width) * 0.5f;
+	float offsetY = (newHeight - height) * 0.5f;
+
+	box.left -= offsetX;
+	box.right += offsetX;
+	box.top -= offsetY;
+	box.bottom += offsetY;
+
+	// Scale the box...
+	height = width;
+	newWidth = width * 1.5f;
+	newHeight = height * 1.5f;
+	offsetX = (newWidth - width) * 0.5f;
+	offsetY = (newHeight - height) * 0.5f;
+
+	box.left -= offsetX;
+	box.right += offsetX;
+	box.top -= offsetY;
+	box.bottom += offsetY;
+
 	m_pRenderTarget->DrawRectangle(box, m_pBlackBrush);
+
+	if (face)
+	{
+		D2D1_SIZE_F size = face->GetSize();
+		
+		D2D1_RECT_F sourceRectangle = D2D1::RectF(
+			0.0f,
+			0.0f,
+			static_cast<float>(size.width),
+			static_cast<float>(size.height));
+
+		m_pRenderTarget->DrawBitmap(face, &box, 1.f, D2D1_BITMAP_INTERPOLATION_MODE_LINEAR, &sourceRectangle);
+	}
 }
 
 void Direct2DRenderer::ReleaseBitmaps()
@@ -216,7 +256,90 @@ HRESULT Direct2DRenderer::CreateDeviceResources()
 		hr = m_pRenderTarget->CreateSolidColorBrush(
 			D2D1::ColorF(D2D1::ColorF::Black, 1.0f),
 			&m_pBlackBrush);
+
+		// Load the various images...
+		ImageCache::GetInstance().LoadData();
 	}
 
 	return hr;
+}
+
+ID2D1Bitmap* Direct2DRenderer::LoadDirect2DImage(const std::wstring& fileName)
+{
+	FILE* file = nullptr;
+	_wfopen_s(&file, fileName.c_str(), L"r");
+	if (file)
+	{
+		fclose(file);
+	}
+	else
+	{
+		return nullptr;
+	}
+
+	IWICBitmapDecoder* decoder = nullptr;
+
+	HRESULT result = m_pWicFactory->CreateDecoderFromFilename(
+		fileName.c_str(),
+		NULL,
+		GENERIC_READ,
+		WICDecodeMetadataCacheOnLoad,
+		&decoder);
+
+	IWICBitmapFrameDecode *source = NULL;
+
+	if (SUCCEEDED(result))
+	{
+		result = decoder->GetFrame(0, &source);
+	}
+
+	IWICFormatConverter *converter = NULL;
+
+	if (SUCCEEDED(result))
+	{
+		// Convert the image format to 32bppPBGRA
+		// (DXGI_FORMAT_B8G8R8A8_UNORM + D2D1_ALPHA_MODE_PREMULTIPLIED).
+		result = m_pWicFactory->CreateFormatConverter(&converter);
+	}
+
+	if (SUCCEEDED(result))
+	{
+		result = converter->Initialize(
+			source,
+			GUID_WICPixelFormat32bppPBGRA,
+			WICBitmapDitherTypeNone,
+			NULL,
+			0.f,
+			WICBitmapPaletteTypeMedianCut);
+	}
+
+	ID2D1Bitmap* bitmap = nullptr;
+
+	if (SUCCEEDED(result))
+	{
+		result = m_pRenderTarget->CreateBitmapFromWicBitmap(
+			converter,
+			NULL,
+			&bitmap);
+	}
+
+	if (decoder)
+	{
+		decoder->Release();
+		decoder = nullptr;
+	}
+
+	if (source)
+	{
+		source->Release();
+		source = nullptr;
+	}
+
+	if (converter)
+	{
+		converter->Release();
+		converter = nullptr;
+	}
+
+	return bitmap;
 }
