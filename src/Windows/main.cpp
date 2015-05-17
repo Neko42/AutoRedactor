@@ -26,6 +26,16 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		{
 			renderer->RenderColorFrames(kinect.GetColorBuffer());
 			renderer->RenderDepthFrames(kinect.GetDepthBuffer());
+
+			for (unsigned int i = 0; i < kinect.GetFaceCount(); ++i)
+			{
+				if (!kinect.GetFaceFound(i))
+					continue;
+
+				RectI faceBox = kinect.GetFaceBox(i);				
+				renderer->RenderFaces(faceBox);
+			}
+
 			renderer->StopRendering();
 		}
 

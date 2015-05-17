@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <assert.h>
+#include <d2d1.h>
+#include <Kinect.h>
 
 // define the face frame features required to be computed by this application
 static const DWORD FACE_FRAME_FEATURES =
@@ -21,6 +23,10 @@ FaceFrameFeatures::FaceFrameFeatures_BoundingBoxInColorSpace
 | FaceFrameFeatures::FaceFrameFeatures_LookingAway
 | FaceFrameFeatures::FaceFrameFeatures_Glasses
 | FaceFrameFeatures::FaceFrameFeatures_FaceEngagement;
+
+// Layout offset in X and Y
+static const float FACE_TEXT_LAYOUT_OFFSET_X = -0.1f;
+static const float FACE_TEXT_LAYOUT_OFFSET_Y = -0.125f;
 
 Sensor::Sensor()
 {
@@ -337,12 +343,22 @@ void Sensor::Update()
 
 	if (SUCCEEDED(result))
 	{
-		IBody* body = GetBodyData();
+		IBody* bodies[BODY_COUNT] = { 0 };
 
-		if (body)
+		HRESULT result = GetBodyData(bodies);
+
+		if (SUCCEEDED(result))
 		{
-			body->Release();
-			body = nullptr;
+			UpdateFaceData(bodies);
+		}
+
+		for (unsigned int i = 0; i < BODY_COUNT; ++i)
+		{
+			if (bodies[i])
+			{
+				bodies[i]->Release();
+				bodies[i] = nullptr;
+			}
 		}
 	}
 
@@ -374,9 +390,9 @@ RGBQUAD* Sensor::GetColorBuffer() const
 	return _colorBuffer;
 }
 
-IBody* Sensor::GetBodyData()
+HRESULT Sensor::GetBodyData(IBody** bodies)
 {
-	IBody* body = nullptr;
+	HRESULT result = S_FALSE;
 
 	if (_bodyFrameReader)
 	{
@@ -384,7 +400,7 @@ IBody* Sensor::GetBodyData()
 		HRESULT result = _bodyFrameReader->AcquireLatestFrame(&bodyFrame);
 		if (SUCCEEDED(result))
 		{
-			result = bodyFrame->GetAndRefreshBodyData(BODY_COUNT, &body);
+			result = bodyFrame->GetAndRefreshBodyData(BODY_COUNT, bodies);
 		}
 
 		if (bodyFrame)
@@ -394,7 +410,142 @@ IBody* Sensor::GetBodyData()
 		}
 	}
 
-	return body;
+	return result;
+}
+
+void Sensor::UpdateFaceData(IBody** bodies)
+{
+	if (!bodies)
+		return;
+
+	HRESULT result;
+
+	for (int i = 0; i < BODY_COUNT; ++i)
+	{
+		// Get a face frame
+		IFaceFrame* faceFrame = nullptr;
+		result = _faceFrameReaders[i]->AcquireLatestFrame(&faceFrame);
+
+		BOOLEAN foundFace = false;
+
+		if (faceFrame)
+		{
+			result = faceFrame->get_IsTrackingIdValid(&foundFace);
+		}
+
+		if (SUCCEEDED(result))
+		{
+			_faceFound[i] = false;
+
+			if (foundFace)
+			{
+				IFaceFrameResult* faceFrameResult = nullptr;
+				result = faceFrame->get_FaceFrameResult(&faceFrameResult);
+				_faceFound[i] = true;
+				
+				if (faceFrameResult)
+				{
+					result = faceFrameResult->get_FaceBoundingBoxInColorSpace(&_faceBox[i]);
+				}
+
+				if (SUCCEEDED(result))
+				{
+					result = faceFrameResult->GetFacePointsInColorSpace(FacePointType::FacePointType_Count, _facePoints[i]);
+				}
+
+				Vector4 faceRotation;
+
+				if (SUCCEEDED(result))
+				{
+					result = faceFrameResult->get_FaceRotationQuaternion(&faceRotation);
+				}
+
+				if (SUCCEEDED(result))
+				{
+					result = faceFrameResult->GetFaceProperties(FaceProperty::FaceProperty_Count, _faceProperties[i]);
+				}
+
+				/*D2D1_POINT_2F faceTextLayout;
+
+				if (SUCCEEDED(result))
+				{
+					result = TransformBodyToImageSpace(bodies[i], &faceTextLayout);
+				}*/
+
+				//if (SUCCEEDED(result))
+				//{
+				//	// draw face frame results
+				//	//_drawDataStreams->DrawFaceFrameResults(iFace, &faceBox, facePoints, &faceRotation, faceProperties, &faceTextLayout);
+				//}
+
+				if (faceFrameResult)
+				{
+					faceFrameResult->Release();
+					faceFrameResult = nullptr;
+				}
+			}
+			else
+			{
+				if (bodies[i])
+				{
+					IBody* body = bodies[i];
+					BOOLEAN track = false;
+
+					result = body->get_IsTracked(&track);
+
+					if (SUCCEEDED(result) && track)
+					{
+						UINT64 bodyId;
+						result = body->get_TrackingId(&bodyId);
+					
+						if (SUCCEEDED(result))
+						{
+							// update the face frame source with the tracking ID
+							_faceFrameSources[i]->put_TrackingId(bodyId);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+HRESULT Sensor::TransformBodyToImageSpace(IBody* body, D2D1_POINT_2F* faceTextLayout)
+{
+	HRESULT result = E_FAIL;
+
+	if (body != nullptr)
+	{
+		BOOLEAN tracked = false;
+		result = body->get_IsTracked(&tracked);
+
+		if (tracked)
+		{
+			Joint joints[JointType_Count];
+			result = body->GetJoints(_countof(joints), joints);
+			if (SUCCEEDED(result))
+			{
+				CameraSpacePoint headJoint = joints[JointType_Head].Position;
+				CameraSpacePoint textPoint =
+				{
+					headJoint.X + FACE_TEXT_LAYOUT_OFFSET_X,
+					headJoint.Y + FACE_TEXT_LAYOUT_OFFSET_Y,
+					headJoint.Z
+				};
+
+				ColorSpacePoint colorPoint = { 0 };
+				result = _coordinateMapper->MapCameraPointToColorSpace(textPoint, &colorPoint);
+
+				if (SUCCEEDED(result))
+				{
+					faceTextLayout->x = colorPoint.X;
+					faceTextLayout->y = colorPoint.Y;
+				}
+			}
+		}
+	}
+
+	return result;
 }
 
 void Sensor::GetDepthData(

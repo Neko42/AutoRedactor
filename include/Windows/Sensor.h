@@ -7,6 +7,7 @@
 #include <Kinect.h>
 #include <Kinect.Face.h>
 #include <Windows.h>
+#include <d2d1.h>
 
 #include <memory>
 
@@ -40,6 +41,29 @@ public:
 	// Get the colour buffer data
 	RGBQUAD* GetColorBuffer() const;
 
+	// Get face count.
+	unsigned int GetFaceCount() const { return BODY_COUNT; }
+
+	// Get whether face found
+	bool GetFaceFound(unsigned int id) const
+	{
+		if (id >= GetFaceCount())
+			return false;
+
+		return _faceFound[id];
+	}
+
+	// Get face box
+	RectI GetFaceBox(unsigned int id) const
+	{
+		RectI faceBox {0};
+
+		if (id >= GetFaceCount())
+			return faceBox;
+
+		return _faceBox[id];
+	}
+
 private:
 	// Simple constructor.
 	Sensor();
@@ -57,7 +81,13 @@ private:
 		unsigned int height);
 
 	// Get latest body data
-	IBody* GetBodyData();
+	HRESULT GetBodyData(IBody** bodies);
+
+	// Update to the latest face data
+	void UpdateFaceData(IBody** bodies);
+
+	// Get body point in image space
+	HRESULT TransformBodyToImageSpace(IBody* body, D2D1_POINT_2F* faceTextLayout);
 
 private:
 	// The default sensor in use.
@@ -86,4 +116,16 @@ private:
 
 	// Face readers
 	IFaceFrameReader*		_faceFrameReaders[BODY_COUNT];
+
+	// Face found
+	bool					_faceFound[BODY_COUNT];
+
+	// Face box
+	RectI					_faceBox[BODY_COUNT];
+
+	// Face points
+	PointF					_facePoints[BODY_COUNT][FacePointType::FacePointType_Count];
+
+	// Face properties
+	DetectionResult			_faceProperties[BODY_COUNT][FaceProperty::FaceProperty_Count];
 };

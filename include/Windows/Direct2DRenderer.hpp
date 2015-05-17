@@ -4,6 +4,7 @@
 #include <d2d1helper.h>
 #include <dwrite.h>
 #include <wincodec.h>
+#include <Kinect.Face.h>
 
 class Direct2DRenderer
 {
@@ -22,6 +23,7 @@ public:
 	
 	void RenderColorFrames(RGBQUAD *color);
 	void RenderDepthFrames(RGBQUAD *frame);
+	void RenderFaces(const RectI& rect);
 
 	void StopRendering();
 private:
@@ -35,6 +37,7 @@ private:
 	ID2D1Factory* m_pDirect2dFactory;
 	ID2D1HwndRenderTarget* m_pRenderTarget;
 	IWICImagingFactory *m_pWicFactory;
+	ID2D1SolidColorBrush* m_pBlackBrush;
 
 	IWICBitmap* m_wicBitmap;
 	ID2D1Bitmap* m_d2dBitmap;

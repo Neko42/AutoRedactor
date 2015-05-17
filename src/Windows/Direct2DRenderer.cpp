@@ -158,6 +158,20 @@ void Direct2DRenderer::RenderDepthFrames(RGBQUAD *frame)
 	ReleaseBitmaps();
 }
 
+void Direct2DRenderer::RenderFaces(const RectI& rect)
+{
+	const float widthScale = 1.0f / Sensor::COLOR_BUFFER_WIDTH;
+	const float heightScale = 1.0f / Sensor::COLOR_BUFFER_HEIGHT;
+
+	D2D1_RECT_F box;
+	box.left = (static_cast<float>(rect.Left) * widthScale) * WINDOW_WIDTH;
+	box.top = (static_cast<float>(rect.Top) * heightScale) * WINDOW_HEIGHT;
+	box.right = (static_cast<float>(rect.Right) * widthScale) * WINDOW_WIDTH;
+	box.bottom = (static_cast<float>(rect.Bottom) * heightScale) * WINDOW_HEIGHT;
+
+	m_pRenderTarget->DrawRectangle(box, m_pBlackBrush);
+}
+
 void Direct2DRenderer::ReleaseBitmaps()
 {
 	if (m_wicBitmap)
@@ -197,6 +211,11 @@ HRESULT Direct2DRenderer::CreateDeviceResources()
 			D2D1::RenderTargetProperties(),
 			D2D1::HwndRenderTargetProperties(m_hwnd, size),
 			&m_pRenderTarget);
+
+		// Create a black brush for rendering...
+		hr = m_pRenderTarget->CreateSolidColorBrush(
+			D2D1::ColorF(D2D1::ColorF::Black, 1.0f),
+			&m_pBlackBrush);
 	}
 
 	return hr;
